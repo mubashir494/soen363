@@ -1,0 +1,10 @@
+{
+  "dependencies": {
+    "child-process": "latest",
+    "dotenv": "^16.0.3",
+    "pg": "latest",
+    "pg-connection-string": "latest",
+    "prompt": "latest",
+    "uuid": "latest"
+  }
+}
