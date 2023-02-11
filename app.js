@@ -4,6 +4,8 @@ require("dotenv").config();
 const output = require("./output.json");
 
 
+
+
 async function retryTxn(n, max, client, operation,callback) {
   await client.query('BEGIN;');
   try {
@@ -38,17 +40,23 @@ function language (tweet,lang,tweetObj) {
 
 function hash(tweet,hashtag,has){
   if(tweet.entities.hashtags != null){
+    var tags = []
     tweet.entities.hashtags.map((element) => {
-      hasObj ={"tweetid" : tweet.id};
-      if(hashtag.includes(element.tag)){
-        hasObj.hashtag_id = hashtag.indexOf(element.tag);
+      if(!tags.includes(element.tag)){
+        hasObj ={"tweetid" : tweet.id};
+        if(hashtag.includes(element.tag)){
+          hasObj.hashtag_id = hashtag.indexOf(element.tag);
+        }
+        else{
+          hashtag.push(element.tag);
+          hasObj.hashtag_id = hashtag.indexOf(element.tag);
+        }
+        has.push(hasObj);
+        tags.push(element.tag)
       }
-      else{
-        hashtag.push(element.tag)
-        hasObj.hashtag_id = hashtag.indexOf(element.tag);
-      }
-      has.push(hasObj);
+      
     })
+
 
   }
 }
@@ -109,7 +117,7 @@ async function insertLanguage (client,callback,data){
 }
 
 async function insertIssues(client,callback){
-  var issues = ["Economic", "Social", "Political", "Health"];
+  var issues = ["Economic", "Social", "Political", "Environmental"];
   issues.forEach((element,index) => {
     var temp = [index,element];
     var addIssue = 'INSERT INTO Issues (issue_id,issue_type) VALUES ($1,$2)';
@@ -150,11 +158,24 @@ async function getHas(client, callback) {
   await client.query(lang, callback);
 }
 
+async function getNumberTweets(client,callback){
+  const count = "SELECT COUNT(*) FROM tweets;"
+  await client.query(count,callback);
+}
+
+async function getNumberUser(client,callback){
+  const count = "SELECT COUNT(*) FROM users;"
+  await client.query(count,callback);
+}
+async function getNumberHashtags(client,callback){
+  const count = "SELECT COUNT(*) FROM hashtags;"
+  await client.query(count,callback);
+}
 
 
-// Parse the collected Data
+//Parse the collected Data
 function parseData(client,callback) {
-  var issues = ["Economic", "Social", "Political", "Health"];
+  var issues = ["Economic", "Social", "Political", "environmental"];
   var eco = ["appreciate","bankrupt","bankruptcy","budget","capital","cash","competition","consumer","consumer", "goods","cost","crash","crash","credit","currency","debt","deficit","deposit","depression","economics","economy","finance","fiscal","fund","inflation","interest","invest","investment","loan"];
   var political = ["Zelensky","biden","putin","talks","embargo","votes","power","oil","gas","america","USA"];
   var social = ["Social","social","racism","Racism","crime","equality","social problems","poverty","inequality","education","population"];
@@ -168,7 +189,7 @@ function parseData(client,callback) {
   output.tweets.map((element) => {  
     element.data.map((tweet) => {
       if(!tweetIdArray.includes(tweet.id)){
-      if(eco.some(keyword => tweet.text.includes(keyword))){
+      if(element.type == "ukraine war world economic"){
         tweetObj = {"id" : tweet.author_id,"tweetid" : tweet.id,"tweet_text": tweet.text,"issue_id" : 0}
         language(tweet,lang,tweetObj);
         hash(tweet,hashtag,has);
@@ -176,7 +197,7 @@ function parseData(client,callback) {
         tweetIdArray.push(tweet.id);
         tweets.push(tweetObj);
       }
-      else if (social.some(keyword => tweet.text.includes(keyword))){
+      else if (element.type == "ukraine war world lives" || element.type == "ukraine war world death" || element == "ukraine war world humanity"){
         tweetObj = {"id" : tweet.author_id,"tweetid" : tweet.id,"tweet_text": tweet.text,"issue_id" : 1}
         language(tweet,lang,tweetObj);
         hash(tweet,hashtag,has);
@@ -185,7 +206,7 @@ function parseData(client,callback) {
         tweets.push(tweetObj);
 
       }
-      else if (political.some(keyword => tweet.text.includes(keyword))){
+      else if (element.type ==  "ukraine war world political" ){
         tweetObj = {"id" : tweet.author_id,"tweetid" : tweet.id,"tweet_text": tweet.text,"issue_id" : 2}
         language(tweet,lang,tweetObj);
         hash(tweet,hashtag,has);
@@ -193,7 +214,7 @@ function parseData(client,callback) {
         tweetIdArray.push(tweet.id);
         tweets.push(tweetObj);
       }
-      else if (health.some(keyword => tweet.text.includes(keyword))){
+      else if (element.type == "ukraine war world environment"){
         tweetObj = {"id" : tweet.author_id,"tweetid" : tweet.id,"tweet_text": tweet.text,"issue_id" : 3}
         language(tweet,lang,tweetObj);
         hash(tweet,hashtag,has);
@@ -206,17 +227,22 @@ function parseData(client,callback) {
   })
   
   // insertIssues(client,callback)
-  getIssues(client,callback);
+  // getIssues(client,callback);
   // insertLanguage(client,callback,lang)
-  getlang(client,callback)
+  // getlang(client,callback)
   // insertUsers(client,callback,user);
-  getUser(client,callback);
+  // getUser(client,callback);
   // insertHashtags(client,callback,hashtag);
-  getHashtags(client,callback);
+  // getHashtags(client,callback);
   // insertTweets(client,callback,tweets);
-  getTweets(client,callback)
+  // getTweets(client,callback)
   // insertHas(client,callback,has)
   getHas(client,callback);
+  // getNumberTweets(client,callback);
+  // getNumberHashtags(client,callback);
+  // getNumberUser(client,callback);
+  // console.log(tweets)
+
 
 
 }
@@ -245,3 +271,5 @@ function parseData(client,callback) {
   // Exit program
   process.exit();
 })().catch((err) => console.log(err.stack));
+
+console.log(Object.keys(output.tweets[0]))
